@@ -78,7 +78,7 @@ export default function Home() {
       )}
 
       {stage === "room" && set && (repo || demo) && (
-        <PracticeRoom files={repo?.files ?? []} set={set} onFinish={finish} demo={demo} />
+        <PracticeRoom files={repo?.files ?? []} set={set} onFinish={finish} demo={demo} level={settings.level} />
       )}
 
       {stage === "summary" && (

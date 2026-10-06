@@ -3,22 +3,25 @@ import { useEffect, useReducer, useState } from "react";
 import { useSpeech } from "@/hooks/useSpeech";
 import { gradeAnswer } from "@/lib/api";
 import { demoFeedback } from "@/lib/demo";
+import { deferFeedback, hintFor, type HintLevel } from "@/lib/hints";
 import type { QuestionSet } from "@/lib/schemas";
 import { initSession, sessionReducer, type Answer } from "@/lib/session";
 import type { RepoFile } from "@/lib/types";
 import { speak, stopSpeaking } from "@/lib/voice";
+import { FeedbackCard } from "../feedback/FeedbackCard";
 import { CameraTile } from "./CameraTile";
 import { Controls } from "./Controls";
+import { HintPanel } from "./HintPanel";
 import { InterviewerTile } from "./InterviewerTile";
 import { MetricsBar } from "./MetricsBar";
 import { QuestionCard } from "./QuestionCard";
 import { Timer } from "./Timer";
 import { TranscriptPanel } from "./TranscriptPanel";
 
-type Props = { files: RepoFile[]; set: QuestionSet; onFinish: (answers: Answer[]) => void; demo?: boolean };
+type Props = { files: RepoFile[]; set: QuestionSet; onFinish: (answers: Answer[]) => void; demo?: boolean; level: HintLevel };
 
-export function PracticeRoom({ files, set, onFinish, demo = false }: Props) {
-  const [s, dispatch] = useReducer(sessionReducer, set.questions, initSession);
+export function PracticeRoom({ files, set, onFinish, demo = false, level }: Props) {
+  const [s, dispatch] = useReducer(sessionReducer, set.questions, (qs) => initSession(qs, deferFeedback(level)));
   const [startedAt] = useState(() => Date.now());
   const [repeating, setRepeating] = useState(false);
   const speech = useSpeech();
@@ -98,6 +101,7 @@ export function PracticeRoom({ files, set, onFinish, demo = false }: Props) {
         <CameraTile on />
       </div>
       <QuestionCard q={q} n={s.index + 1} total={s.questions.length} showText />
+      {(s.phase === "ready" || s.phase === "answering") && <HintPanel hint={hintFor(level, q)} />}
       {!speech.supported && (
         <p className="text-sm text-warn">Speech-to-text needs Chrome or Edge. You can still practice out loud.</p>
       )}
@@ -108,11 +112,12 @@ export function PracticeRoom({ files, set, onFinish, demo = false }: Props) {
           <TranscriptPanel text={speech.finalText} interim={speech.interim} listening={speech.listening} />
         </>
       )}
-      {s.phase === "review" && last && (
+      {s.phase === "review" && last?.error && (
         <div className="rounded-xl border border-border bg-surface p-4 text-sm">
-          {last.error ? <p className="text-danger">{last.error}</p> : <p>Score: {last.feedback?.score}/10</p>}
+          <p className="text-danger">{last.error}</p>
         </div>
       )}
+      {s.phase === "review" && last?.feedback && <FeedbackCard fb={last.feedback} />}
       <Controls
         phase={s.phase}
         onRepeat={repeat}
