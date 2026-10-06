@@ -4,13 +4,14 @@ import { FolderPicker } from "@/components/FolderPicker";
 import { RepoSummary } from "@/components/RepoSummary";
 import { PracticeRoom } from "@/components/room/PracticeRoom";
 import { SessionSettings, type Settings } from "@/components/SessionSettings";
-import { generateQuestions } from "@/lib/api";
-import { DEMO_SET } from "@/lib/demo";
+import { generateQuestions, gradeAnswer } from "@/lib/api";
+import { DEMO_SET, demoFeedback } from "@/lib/demo";
+import { gradeAll } from "@/lib/gradeAll";
 import type { RepoLoad } from "@/lib/repo";
 import type { QuestionSet } from "@/lib/schemas";
 import type { Answer } from "@/lib/session";
 
-type Stage = "setup" | "generating" | "room" | "summary";
+type Stage = "setup" | "generating" | "room" | "grading" | "summary";
 
 export default function Home() {
   const [stage, setStage] = useState<Stage>("setup");
@@ -41,10 +42,21 @@ export default function Home() {
     }
   }
 
-  const finish = useCallback((a: Answer[]) => {
-    setAnswers(a);
-    setStage("summary");
-  }, []);
+  const finish = useCallback(
+    async (a: Answer[]) => {
+      setAnswers(a);
+      if (a.some((x) => !x.feedback && !x.error)) {
+        setStage("grading");
+        const files = repo?.files ?? [];
+        const grade = demo
+          ? async (...args: Parameters<typeof demoFeedback>) => demoFeedback(...args)
+          : (...args: Parameters<typeof demoFeedback>) => gradeAnswer(files, ...args);
+        setAnswers(await gradeAll(a, grade));
+      }
+      setStage("summary");
+    },
+    [repo, demo],
+  );
 
   return (
     <main className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-4 py-10">
@@ -56,13 +68,11 @@ export default function Home() {
       {stage === "setup" && (
         <>
           {repo ? <RepoSummary repo={repo} onClear={() => setRepo(null)} /> : <FolderPicker onLoad={setRepo} />}
+          <SessionSettings value={settings} onChange={setSettings} />
           {repo && (
-            <>
-              <SessionSettings value={settings} onChange={setSettings} />
-              <button className="self-start rounded-full bg-accent px-6 py-3 font-medium text-white" onClick={prepare}>
-                Prepare my interview
-              </button>
-            </>
+            <button className="self-start rounded-full bg-accent px-6 py-3 font-medium text-white" onClick={prepare}>
+              Prepare my interview
+            </button>
           )}
           {error && <p className="text-sm text-danger">{error}</p>}
           {!repo && (
@@ -79,6 +89,10 @@ export default function Home() {
 
       {stage === "room" && set && (repo || demo) && (
         <PracticeRoom files={repo?.files ?? []} set={set} onFinish={finish} demo={demo} level={settings.level} friend={settings.friend} />
+      )}
+
+      {stage === "grading" && (
+        <p className="animate-pulse text-muted">Interview over. Your coach is reviewing all {answers.length} answers…</p>
       )}
 
       {stage === "summary" && (
