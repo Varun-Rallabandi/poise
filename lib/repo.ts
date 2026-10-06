@@ -32,7 +32,7 @@ export async function readRepoFolder(list: ArrayLike<FileLike>): Promise<RepoLoa
   let totalChars = 0;
 
   for (const file of Array.from(list)) {
-    const path = file.webkitRelativePath || file.name;
+    const path = stripRootFolder(file.webkitRelativePath || file.name);
     if (isIgnoredPath(path) || !isTextFile(path)) continue;
     if (file.size > MAX_FILE_CHARS) {
       skipped.push(`${path} (too large)`);
@@ -47,4 +47,10 @@ export async function readRepoFolder(list: ArrayLike<FileLike>): Promise<RepoLoa
     files.push({ path, content });
   }
   return { files, skipped, totalChars };
+}
+
+/** "my-takehome/src/app.ts" -> "src/app.ts" so paths read like they do in an editor. */
+export function stripRootFolder(path: string): string {
+  const i = path.indexOf("/");
+  return i === -1 ? path : path.slice(i + 1);
 }
