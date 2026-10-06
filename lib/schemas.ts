@@ -30,3 +30,13 @@ export const FeedbackSchema = z.object({
 });
 
 export type Feedback = z.infer<typeof FeedbackSchema>;
+
+export const MetricsSchema = z.object({
+  seconds: z.number(),
+  words: z.number(),
+  wpm: z.number(),
+  fillers: z.number(),
+  longestPause: z.number(),
+});
+
+export type Metrics = z.infer<typeof MetricsSchema>;
