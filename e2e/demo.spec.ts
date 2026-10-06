@@ -68,7 +68,10 @@ test("mock interview mode defers feedback to the end", async ({ page }) => {
     await expect(page.getByText("Talking points")).toHaveCount(0);
     await page.getByRole("button", { name: "Done answering" }).click();
     // No per-answer review in mock mode: it goes straight to the next question.
-    await expect(page.getByText("A tighter version")).toHaveCount(0);
+    if (i < 2) await expect(page.getByText(`Question ${i + 2} of 3`)).toBeVisible();
+    await expect(page.getByRole("button", { name: /Next question|Finish session/ })).toHaveCount(0);
   }
-  await expect(page.getByText("Session complete")).toBeVisible();
+  await expect(page.getByText("Session done")).toBeVisible();
+  // All three answers were graded at the end.
+  await expect(page.locator("details summary").filter({ hasText: /\d+\/10/ })).toHaveCount(3);
 });

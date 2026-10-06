@@ -4,12 +4,16 @@ import { FolderPicker } from "@/components/FolderPicker";
 import { RepoSummary } from "@/components/RepoSummary";
 import { PracticeRoom } from "@/components/room/PracticeRoom";
 import { SessionSettings, type Settings } from "@/components/SessionSettings";
+import { SummaryScreen } from "@/components/summary/SummaryScreen";
 import { generateQuestions, gradeAnswer } from "@/lib/api";
 import { DEMO_SET, demoFeedback } from "@/lib/demo";
 import { gradeAll } from "@/lib/gradeAll";
+import type { HintLevel } from "@/lib/hints";
+import { loadHistory, saveSession, type SessionRecord } from "@/lib/history";
 import type { RepoLoad } from "@/lib/repo";
 import type { QuestionSet } from "@/lib/schemas";
 import type { Answer } from "@/lib/session";
+import { suggestLevel, summarize } from "@/lib/summary";
 
 type Stage = "setup" | "generating" | "room" | "grading" | "summary";
 
@@ -21,6 +25,8 @@ export default function Home() {
   const [answers, setAnswers] = useState<Answer[]>([]);
   const [error, setError] = useState("");
   const [demo, setDemo] = useState(false);
+  const [record, setRecord] = useState<SessionRecord | null>(null);
+  const [history, setHistory] = useState<SessionRecord[]>([]);
 
   function startDemo() {
     setDemo(true);
@@ -44,6 +50,7 @@ export default function Home() {
 
   const finish = useCallback(
     async (a: Answer[]) => {
+      let graded = a;
       setAnswers(a);
       if (a.some((x) => !x.feedback && !x.error)) {
         setStage("grading");
@@ -51,11 +58,16 @@ export default function Home() {
         const grade = demo
           ? async (...args: Parameters<typeof demoFeedback>) => demoFeedback(...args)
           : (...args: Parameters<typeof demoFeedback>) => gradeAnswer(files, ...args);
-        setAnswers(await gradeAll(a, grade));
+        graded = await gradeAll(a, grade);
+        setAnswers(graded);
       }
+      const rec = summarize(graded, settings.level);
+      setRecord(rec);
+      // Demo runs are canned, so keep them out of real progress history.
+      setHistory(demo ? loadHistory() : saveSession(rec));
       setStage("summary");
     },
-    [repo, demo],
+    [repo, demo, settings.level],
   );
 
   return (
@@ -95,13 +107,17 @@ export default function Home() {
         <p className="animate-pulse text-muted">Interview over. Your coach is reviewing all {answers.length} answers…</p>
       )}
 
-      {stage === "summary" && (
-        <p>
-          Session complete: {answers.length} answers.{" "}
-          <button className="underline" onClick={() => setStage("setup")}>
-            Practice again
-          </button>
-        </p>
+      {stage === "summary" && record && (
+        <SummaryScreen
+          rec={record}
+          answers={answers}
+          history={history}
+          next={suggestLevel(record)}
+          onAgain={(level: HintLevel) => {
+            setSettings((st) => ({ ...st, level }));
+            setStage("setup");
+          }}
+        />
       )}
     </main>
   );
