@@ -125,6 +125,9 @@ export function PracticeRoom({ files, set, onFinish, demo = false, level }: Prop
         onEnd={end}
         onNext={() => dispatch({ type: "next" })}
         isLast={s.index === s.questions.length - 1}
+        followUp={last?.feedback?.followUp || undefined}
+        onFollowUp={() => last?.feedback && dispatch({ type: "followUp", question: last.feedback.followUp })}
+        onHearBetter={last?.feedback ? () => speak(last.feedback!.betterAnswer) : undefined}
       />
     </div>
   );
