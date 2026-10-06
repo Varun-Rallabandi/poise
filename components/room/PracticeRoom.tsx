@@ -18,9 +18,9 @@ import { QuestionCard } from "./QuestionCard";
 import { Timer } from "./Timer";
 import { TranscriptPanel } from "./TranscriptPanel";
 
-type Props = { files: RepoFile[]; set: QuestionSet; onFinish: (answers: Answer[]) => void; demo?: boolean; level: HintLevel };
+type Props = { files: RepoFile[]; set: QuestionSet; onFinish: (answers: Answer[]) => void; demo?: boolean; level: HintLevel; friend?: boolean };
 
-export function PracticeRoom({ files, set, onFinish, demo = false, level }: Props) {
+export function PracticeRoom({ files, set, onFinish, demo = false, level, friend = false }: Props) {
   const [s, dispatch] = useReducer(sessionReducer, set.questions, (qs) => initSession(qs, deferFeedback(level)));
   const [startedAt] = useState(() => Date.now());
   const [repeating, setRepeating] = useState(false);
@@ -32,14 +32,16 @@ export function PracticeRoom({ files, set, onFinish, demo = false, level }: Prop
   useEffect(() => {
     if (s.phase !== "asking") return;
     let cancelled = false;
-    speak(q.question).then(() => {
+    // In friend mode a person asks on Meet, so skip TTS and go straight to ready.
+    const ask = friend ? Promise.resolve() : speak(q.question);
+    ask.then(() => {
       if (!cancelled) dispatch({ type: "asked" });
     });
     return () => {
       cancelled = true;
       stopSpeaking();
     };
-  }, [s.phase, q]);
+  }, [s.phase, q, friend]);
 
   // Grade the answer as soon as the candidate finishes.
   useEffect(() => {
@@ -97,10 +99,10 @@ export function PracticeRoom({ files, set, onFinish, demo = false, level }: Prop
         <Timer startedAt={startedAt} />
       </div>
       <div className="grid gap-3 md:grid-cols-2">
-        <InterviewerTile speaking={speaking} />
+        <InterviewerTile speaking={!friend && speaking} label={friend ? "Your friend (on Google Meet)" : "Interviewer"} />
         <CameraTile on />
       </div>
-      <QuestionCard q={q} n={s.index + 1} total={s.questions.length} showText />
+      <QuestionCard q={q} n={s.index + 1} total={s.questions.length} showText={!friend} />
       {(s.phase === "ready" || s.phase === "answering") && <HintPanel hint={hintFor(level, q)} />}
       {!speech.supported && (
         <p className="text-sm text-warn">Speech-to-text needs Chrome or Edge. You can still practice out loud.</p>
