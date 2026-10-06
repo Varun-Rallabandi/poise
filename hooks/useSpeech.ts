@@ -19,6 +19,7 @@ export function useSpeech() {
   const lastHeard = useRef(0);
   const longestPause = useRef(0);
   const finalRef = useRef("");
+  const interimRef = useRef("");
 
   // Browser capability never changes, so subscribe is a no-op. Server render assumes support.
   const supported = useSyncExternalStore(
@@ -44,6 +45,7 @@ export function useSpeech() {
     const r = createRecognition();
     if (!r) return setUnsupported(true);
     finalRef.current = "";
+    interimRef.current = "";
     setFinalText("");
     setInterim("");
     setError("");
@@ -60,6 +62,7 @@ export function useSpeech() {
         if (res.isFinal) finalRef.current += res[0].transcript.trim() + " ";
         else live += res[0].transcript;
       }
+      interimRef.current = live;
       setFinalText(finalRef.current);
       setInterim(live);
     };
@@ -84,11 +87,11 @@ export function useSpeech() {
     wantOn.current = false;
     rec.current?.stop();
     setListening(false);
-    const transcript = (finalRef.current + " " + interim).trim();
+    const transcript = (finalRef.current + " " + interimRef.current).trim();
     const m = computeMetrics(transcript, (Date.now() - startedAt.current) / 1000, longestPause.current);
     setMetrics(m);
     return { transcript, metrics: m };
-  }, [interim]);
+  }, []);
 
   return { supported: supported && !unsupported, listening, finalText, interim, metrics, error, start, stop };
 }
