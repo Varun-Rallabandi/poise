@@ -1,26 +1,48 @@
 @import "tailwindcss";
 
+/* Calm, low-contrast palette: this app is for people who get nervous on camera. */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --background: #f6f5f1;
+  --surface: #ffffff;
+  --border: #e3e1da;
+  --foreground: #1c1b18;
+  --muted: #6d6a62;
+  --accent: #3f6f5e;
+  --accent-soft: #e2ece7;
+  --warn: #b5762a;
+  --danger: #b4483a;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #121412;
+    --surface: #1a1d1b;
+    --border: #2a2e2b;
+    --foreground: #e9e8e3;
+    --muted: #9a9890;
+    --accent: #7fb59e;
+    --accent-soft: #1f2d27;
+    --warn: #d9a25a;
+    --danger: #e07a6b;
   }
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-border: var(--border);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-warn: var(--warn);
+  --color-danger: var(--danger);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), system-ui, sans-serif;
 }
