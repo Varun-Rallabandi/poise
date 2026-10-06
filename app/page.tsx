@@ -15,7 +15,7 @@ type Stage = "setup" | "generating" | "room" | "summary";
 export default function Home() {
   const [stage, setStage] = useState<Stage>("setup");
   const [repo, setRepo] = useState<RepoLoad | null>(null);
-  const [settings, setSettings] = useState<Settings>({ count: 8, role: "" });
+  const [settings, setSettings] = useState<Settings>({ count: 8, role: "", level: 1 });
   const [set, setSet] = useState<QuestionSet | null>(null);
   const [answers, setAnswers] = useState<Answer[]>([]);
   const [error, setError] = useState("");
