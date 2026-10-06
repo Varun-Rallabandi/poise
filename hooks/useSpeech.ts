@@ -29,14 +29,11 @@ export function useSpeech() {
   );
   const [unsupported, setUnsupported] = useState(false);
 
-  // Live metrics tick while recording; counts current silence toward longest pause.
+  // Live metrics tick while recording.
   useEffect(() => {
     if (!listening) return;
     const id = setInterval(() => {
       const now = Date.now();
-      const gap = (now - lastHeard.current) / 1000;
-      // Thinking time before the first word isn't a pause; only gaps mid-answer count.
-      if (finalRef.current && gap * 1000 > PAUSE_GAP_MS) longestPause.current = Math.max(longestPause.current, gap);
       setMetrics(computeMetrics(finalRef.current, (now - startedAt.current) / 1000, longestPause.current));
     }, 500);
     return () => clearInterval(id);
@@ -56,7 +53,12 @@ export function useSpeech() {
     r.interimResults = true;
     r.lang = "en-US";
     r.onresult = (e) => {
-      lastHeard.current = Date.now();
+      const now = Date.now();
+      // A pause is silence between words. Thinking time before the first word and
+      // silence after the last word (before clicking Done) don't count.
+      const gap = now - lastHeard.current;
+      if (finalRef.current && gap > PAUSE_GAP_MS) longestPause.current = Math.max(longestPause.current, gap / 1000);
+      lastHeard.current = now;
       let live = "";
       for (let i = e.resultIndex; i < e.results.length; i++) {
         const res = e.results[i];
