@@ -4,6 +4,7 @@ import { FolderPicker } from "@/components/FolderPicker";
 import { RepoSummary } from "@/components/RepoSummary";
 import { PracticeRoom } from "@/components/room/PracticeRoom";
 import { SessionSettings, type Settings } from "@/components/SessionSettings";
+import { RecentSessions } from "@/components/summary/RecentSessions";
 import { SummaryScreen } from "@/components/summary/SummaryScreen";
 import { generateQuestions, gradeAnswer } from "@/lib/api";
 import { DEMO_SET, demoFeedback } from "@/lib/demo";
@@ -79,6 +80,7 @@ export default function Home() {
 
       {stage === "setup" && (
         <>
+          <RecentSessions />
           {repo ? <RepoSummary repo={repo} onClear={() => setRepo(null)} /> : <FolderPicker onLoad={setRepo} />}
           <SessionSettings value={settings} onChange={setSettings} />
           {repo && (
