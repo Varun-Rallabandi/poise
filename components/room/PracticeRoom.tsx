@@ -2,6 +2,7 @@
 import { useEffect, useReducer, useState } from "react";
 import { useSpeech } from "@/hooks/useSpeech";
 import { gradeAnswer } from "@/lib/api";
+import { demoFeedback } from "@/lib/demo";
 import type { QuestionSet } from "@/lib/schemas";
 import { initSession, sessionReducer, type Answer } from "@/lib/session";
 import type { RepoFile } from "@/lib/types";
@@ -14,9 +15,9 @@ import { QuestionCard } from "./QuestionCard";
 import { Timer } from "./Timer";
 import { TranscriptPanel } from "./TranscriptPanel";
 
-type Props = { files: RepoFile[]; set: QuestionSet; onFinish: (answers: Answer[]) => void };
+type Props = { files: RepoFile[]; set: QuestionSet; onFinish: (answers: Answer[]) => void; demo?: boolean };
 
-export function PracticeRoom({ files, set, onFinish }: Props) {
+export function PracticeRoom({ files, set, onFinish, demo = false }: Props) {
   const [s, dispatch] = useReducer(sessionReducer, set.questions, initSession);
   const [startedAt] = useState(() => Date.now());
   const [repeating, setRepeating] = useState(false);
@@ -41,10 +42,13 @@ export function PracticeRoom({ files, set, onFinish }: Props) {
   useEffect(() => {
     if (s.phase !== "grading") return;
     const a = s.answers[s.answers.length - 1];
-    gradeAnswer(files, a.question, a.transcript, a.metrics)
+    const grade = demo
+      ? Promise.resolve(demoFeedback(a.question, a.transcript, a.metrics))
+      : gradeAnswer(files, a.question, a.transcript, a.metrics);
+    grade
       .then((feedback) => dispatch({ type: "graded", feedback }))
       .catch((e: Error) => dispatch({ type: "gradeFailed", error: e.message }));
-  }, [s.phase, s.answers, files]);
+  }, [s.phase, s.answers, files, demo]);
 
   useEffect(() => {
     if (s.phase === "done") onFinish(s.answers);
