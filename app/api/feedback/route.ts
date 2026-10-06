@@ -1,5 +1,5 @@
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
-import { toErrorResponse } from "@/lib/apiError";
+import { missingKeyResponse, toErrorResponse } from "@/lib/apiError";
 import { client, MODEL, repoSystemBlock } from "@/lib/claude";
 import { feedbackMessage } from "@/lib/feedbackMessage";
 import { FEEDBACK_PROMPT } from "@/lib/prompts";
@@ -9,6 +9,8 @@ import type { RepoFile } from "@/lib/types";
 export const maxDuration = 120;
 
 export async function POST(req: Request) {
+  const noKey = missingKeyResponse();
+  if (noKey) return noKey;
   const body = await req.json();
   const files = body.files as RepoFile[];
   const question = QuestionSchema.safeParse(body.question);
