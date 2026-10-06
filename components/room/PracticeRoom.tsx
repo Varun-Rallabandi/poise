@@ -3,22 +3,26 @@ import { useEffect, useReducer, useState } from "react";
 import { useSpeech } from "@/hooks/useSpeech";
 import { gradeAnswer } from "@/lib/api";
 import { demoFeedback } from "@/lib/demo";
+import { deferFeedback, hintFor, type HintLevel } from "@/lib/hints";
 import type { QuestionSet } from "@/lib/schemas";
 import { initSession, sessionReducer, type Answer } from "@/lib/session";
 import type { RepoFile } from "@/lib/types";
 import { speak, stopSpeaking } from "@/lib/voice";
+import { FeedbackCard } from "../feedback/FeedbackCard";
+import { FriendScriptButton } from "./FriendScriptButton";
 import { CameraTile } from "./CameraTile";
 import { Controls } from "./Controls";
+import { HintPanel } from "./HintPanel";
 import { InterviewerTile } from "./InterviewerTile";
 import { MetricsBar } from "./MetricsBar";
 import { QuestionCard } from "./QuestionCard";
 import { Timer } from "./Timer";
 import { TranscriptPanel } from "./TranscriptPanel";
 
-type Props = { files: RepoFile[]; set: QuestionSet; onFinish: (answers: Answer[]) => void; demo?: boolean };
+type Props = { files: RepoFile[]; set: QuestionSet; onFinish: (answers: Answer[]) => void; demo?: boolean; level: HintLevel; friend?: boolean };
 
-export function PracticeRoom({ files, set, onFinish, demo = false }: Props) {
-  const [s, dispatch] = useReducer(sessionReducer, set.questions, initSession);
+export function PracticeRoom({ files, set, onFinish, demo = false, level, friend = false }: Props) {
+  const [s, dispatch] = useReducer(sessionReducer, set.questions, (qs) => initSession(qs, deferFeedback(level)));
   const [startedAt] = useState(() => Date.now());
   const [repeating, setRepeating] = useState(false);
   const speech = useSpeech();
@@ -29,14 +33,16 @@ export function PracticeRoom({ files, set, onFinish, demo = false }: Props) {
   useEffect(() => {
     if (s.phase !== "asking") return;
     let cancelled = false;
-    speak(q.question).then(() => {
+    // In friend mode a person asks on Meet, so skip TTS and go straight to ready.
+    const ask = friend ? Promise.resolve() : speak(q.question);
+    ask.then(() => {
       if (!cancelled) dispatch({ type: "asked" });
     });
     return () => {
       cancelled = true;
       stopSpeaking();
     };
-  }, [s.phase, q]);
+  }, [s.phase, q, friend]);
 
   // Grade the answer as soon as the candidate finishes.
   useEffect(() => {
@@ -76,11 +82,19 @@ export function PracticeRoom({ files, set, onFinish, demo = false }: Props) {
       <div className="flex flex-col items-start gap-4">
         <CameraTile on />
         <p className="text-muted">
-          Check your camera, take a breath. {set.questions.length} questions. Nobody else can see this.
+          Check your camera, take a breath. {set.questions.length} questions.
         </p>
-        <button className="rounded-full bg-accent px-5 py-2.5 text-white" onClick={() => dispatch({ type: "start" })}>
-          Start interview
-        </button>
+        {friend && (
+          <p className="text-sm text-muted">
+            Join a Google Meet with your friend, send them the script below, and keep this tab open beside the call.
+          </p>
+        )}
+        <div className="flex flex-wrap gap-3">
+          <button className="rounded-full bg-accent px-5 py-2.5 text-white" onClick={() => dispatch({ type: "start" })}>
+            Start interview
+          </button>
+          {friend && <FriendScriptButton set={set} />}
+        </div>
       </div>
     );
 
@@ -94,10 +108,11 @@ export function PracticeRoom({ files, set, onFinish, demo = false }: Props) {
         <Timer startedAt={startedAt} />
       </div>
       <div className="grid gap-3 md:grid-cols-2">
-        <InterviewerTile speaking={speaking} />
+        <InterviewerTile speaking={!friend && speaking} label={friend ? "Your friend (on Google Meet)" : "Interviewer"} />
         <CameraTile on />
       </div>
-      <QuestionCard q={q} n={s.index + 1} total={s.questions.length} showText />
+      <QuestionCard q={q} n={s.index + 1} total={s.questions.length} showText={!friend} />
+      {(s.phase === "ready" || s.phase === "answering") && <HintPanel hint={hintFor(level, q)} />}
       {!speech.supported && (
         <p className="text-sm text-warn">Speech-to-text needs Chrome or Edge. You can still practice out loud.</p>
       )}
@@ -108,11 +123,12 @@ export function PracticeRoom({ files, set, onFinish, demo = false }: Props) {
           <TranscriptPanel text={speech.finalText} interim={speech.interim} listening={speech.listening} />
         </>
       )}
-      {s.phase === "review" && last && (
+      {s.phase === "review" && last?.error && (
         <div className="rounded-xl border border-border bg-surface p-4 text-sm">
-          {last.error ? <p className="text-danger">{last.error}</p> : <p>Score: {last.feedback?.score}/10</p>}
+          <p className="text-danger">{last.error}</p>
         </div>
       )}
+      {s.phase === "review" && last?.feedback && <FeedbackCard fb={last.feedback} />}
       <Controls
         phase={s.phase}
         onRepeat={repeat}
@@ -120,6 +136,9 @@ export function PracticeRoom({ files, set, onFinish, demo = false }: Props) {
         onEnd={end}
         onNext={() => dispatch({ type: "next" })}
         isLast={s.index === s.questions.length - 1}
+        followUp={last?.feedback?.followUp || undefined}
+        onFollowUp={() => last?.feedback && dispatch({ type: "followUp", question: last.feedback.followUp })}
+        onHearBetter={last?.feedback ? () => speak(last.feedback!.betterAnswer) : undefined}
       />
     </div>
   );
