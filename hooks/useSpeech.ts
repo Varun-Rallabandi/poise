@@ -35,7 +35,8 @@ export function useSpeech() {
     const id = setInterval(() => {
       const now = Date.now();
       const gap = (now - lastHeard.current) / 1000;
-      if (gap * 1000 > PAUSE_GAP_MS) longestPause.current = Math.max(longestPause.current, gap);
+      // Thinking time before the first word isn't a pause; only gaps mid-answer count.
+      if (finalRef.current && gap * 1000 > PAUSE_GAP_MS) longestPause.current = Math.max(longestPause.current, gap);
       setMetrics(computeMetrics(finalRef.current, (now - startedAt.current) / 1000, longestPause.current));
     }, 500);
     return () => clearInterval(id);
