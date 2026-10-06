@@ -16,6 +16,8 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      # Route types like LayoutProps are generated, not committed.
+      - run: pnpm exec next typegen
       - run: pnpm exec tsc --noEmit
       - run: pnpm lint
       - run: pnpm test
