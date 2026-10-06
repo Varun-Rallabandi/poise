@@ -9,6 +9,7 @@ import { initSession, sessionReducer, type Answer } from "@/lib/session";
 import type { RepoFile } from "@/lib/types";
 import { speak, stopSpeaking } from "@/lib/voice";
 import { FeedbackCard } from "../feedback/FeedbackCard";
+import { FriendScriptButton } from "./FriendScriptButton";
 import { CameraTile } from "./CameraTile";
 import { Controls } from "./Controls";
 import { HintPanel } from "./HintPanel";
@@ -81,11 +82,19 @@ export function PracticeRoom({ files, set, onFinish, demo = false, level, friend
       <div className="flex flex-col items-start gap-4">
         <CameraTile on />
         <p className="text-muted">
-          Check your camera, take a breath. {set.questions.length} questions. Nobody else can see this.
+          Check your camera, take a breath. {set.questions.length} questions.
         </p>
-        <button className="rounded-full bg-accent px-5 py-2.5 text-white" onClick={() => dispatch({ type: "start" })}>
-          Start interview
-        </button>
+        {friend && (
+          <p className="text-sm text-muted">
+            Join a Google Meet with your friend, send them the script below, and keep this tab open beside the call.
+          </p>
+        )}
+        <div className="flex flex-wrap gap-3">
+          <button className="rounded-full bg-accent px-5 py-2.5 text-white" onClick={() => dispatch({ type: "start" })}>
+            Start interview
+          </button>
+          {friend && <FriendScriptButton set={set} />}
+        </div>
       </div>
     );
 
