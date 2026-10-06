@@ -15,3 +15,6 @@ const BARE_NAMES = /(^|\/)(Dockerfile|Makefile|README|Procfile)$/;
 export function isTextFile(path: string): boolean {
   return TEXT_EXT.test(path) || BARE_NAMES.test(path);
 }
+
+export const MAX_FILE_CHARS = 120_000;
+export const MAX_TOTAL_CHARS = 1_500_000; // roughly 400k tokens, well inside a 1M context
