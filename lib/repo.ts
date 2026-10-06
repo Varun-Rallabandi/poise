@@ -34,7 +34,15 @@ export async function readRepoFolder(list: ArrayLike<FileLike>): Promise<RepoLoa
   for (const file of Array.from(list)) {
     const path = file.webkitRelativePath || file.name;
     if (isIgnoredPath(path) || !isTextFile(path)) continue;
+    if (file.size > MAX_FILE_CHARS) {
+      skipped.push(`${path} (too large)`);
+      continue;
+    }
     const content = await file.text();
+    if (totalChars + content.length > MAX_TOTAL_CHARS) {
+      skipped.push(`${path} (repo size limit)`);
+      continue;
+    }
     totalChars += content.length;
     files.push({ path, content });
   }
