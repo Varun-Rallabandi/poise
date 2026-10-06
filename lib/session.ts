@@ -15,6 +15,8 @@ export type SessionState = {
   index: number;
   questions: Question[];
   answers: Answer[];
+  /** Mock-interview mode: skip per-answer grading and move straight on. */
+  defer: boolean;
 };
 
 export type SessionAction =
@@ -26,8 +28,13 @@ export type SessionAction =
   | { type: "gradeFailed"; error: string }
   | { type: "next" };
 
-export function initSession(questions: Question[]): SessionState {
-  return { phase: "intro", index: 0, questions, answers: [] };
+export function initSession(questions: Question[], defer = false): SessionState {
+  return { phase: "intro", index: 0, questions, answers: [], defer };
+}
+
+function advance(s: SessionState): SessionState {
+  const index = s.index + 1;
+  return index >= s.questions.length ? { ...s, phase: "done" } : { ...s, index, phase: "asking" };
 }
 
 export function sessionReducer(s: SessionState, a: SessionAction): SessionState {
@@ -41,7 +48,8 @@ export function sessionReducer(s: SessionState, a: SessionAction): SessionState 
     case "end": {
       if (s.phase !== "answering") return s;
       const answer: Answer = { question: s.questions[s.index], transcript: a.transcript, metrics: a.metrics };
-      return { ...s, phase: "grading", answers: [...s.answers, answer] };
+      const next = { ...s, answers: [...s.answers, answer] };
+      return s.defer ? advance(next) : { ...next, phase: "grading" };
     }
     case "graded":
     case "gradeFailed": {
@@ -53,8 +61,7 @@ export function sessionReducer(s: SessionState, a: SessionAction): SessionState 
     }
     case "next": {
       if (s.phase !== "review") return s;
-      const index = s.index + 1;
-      return index >= s.questions.length ? { ...s, phase: "done" } : { ...s, index, phase: "asking" };
+      return advance(s);
     }
   }
 }

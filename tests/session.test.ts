@@ -40,4 +40,14 @@ describe("sessionReducer", () => {
     expect(r(s, { type: "begin" })).toBe(s);
     expect(r(s, { type: "next" })).toBe(s);
   });
+
+  it("skips grading in deferred mode", () => {
+    let s = r(initSession([q(1), q(2)], true), { type: "start" });
+    s = r(r(r(s, { type: "asked" }), { type: "begin" }), { type: "end", transcript: "a", metrics });
+    expect(s).toMatchObject({ phase: "asking", index: 1 });
+    expect(s.answers[0].feedback).toBeUndefined();
+    s = r(r(r(s, { type: "asked" }), { type: "begin" }), { type: "end", transcript: "b", metrics });
+    expect(s.phase).toBe("done");
+    expect(s.answers).toHaveLength(2);
+  });
 });
