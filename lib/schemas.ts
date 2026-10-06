@@ -9,3 +9,11 @@ export const QuestionSchema = z.object({
 });
 
 export type Question = z.infer<typeof QuestionSchema>;
+
+export const QuestionSetSchema = z.object({
+  summary: z.string().describe("2-3 sentence plain-English summary of what the project does and how it's built"),
+  weakSpots: z.array(z.string()).describe("Things an interviewer will likely poke at: bugs, missing tests, shortcuts"),
+  questions: z.array(QuestionSchema),
+});
+
+export type QuestionSet = z.infer<typeof QuestionSetSchema>;
