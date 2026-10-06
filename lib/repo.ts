@@ -6,3 +6,12 @@ const SKIP_FILES = /(package-lock\.json|pnpm-lock\.yaml|yarn\.lock|\.min\.(js|cs
 export function isIgnoredPath(path: string): boolean {
   return SKIP_DIRS.test(path) || SKIP_FILES.test(path);
 }
+
+const TEXT_EXT =
+  /\.(ts|tsx|js|jsx|mjs|cjs|py|go|rs|java|kt|rb|php|cs|c|cc|cpp|h|hpp|swift|sql|md|json|ya?ml|toml|html|css|scss|sh|prisma|graphql|txt)$/i;
+const BARE_NAMES = /(^|\/)(Dockerfile|Makefile|README|Procfile)$/;
+
+/** Only source and config files are worth sending to the model. */
+export function isTextFile(path: string): boolean {
+  return TEXT_EXT.test(path) || BARE_NAMES.test(path);
+}
