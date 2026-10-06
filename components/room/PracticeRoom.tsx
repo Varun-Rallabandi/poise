@@ -77,6 +77,22 @@ export function PracticeRoom({ files, set, onFinish, demo = false, level, friend
     dispatch({ type: "end", transcript, metrics });
   }
 
+  // Space starts and stops an answer, so you can keep your eyes on the camera.
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.code !== "Space" || (e.target as HTMLElement).closest("input, textarea, button")) return;
+      if (s.phase === "ready") {
+        e.preventDefault();
+        begin();
+      } else if (s.phase === "answering") {
+        e.preventDefault();
+        end();
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  });
+
   if (s.phase === "intro")
     return (
       <div className="flex flex-col items-start gap-4">
@@ -129,6 +145,9 @@ export function PracticeRoom({ files, set, onFinish, demo = false, level, friend
         </div>
       )}
       {s.phase === "review" && last?.feedback && <FeedbackCard fb={last.feedback} />}
+      {(s.phase === "ready" || s.phase === "answering") && (
+        <p className="text-xs text-muted">Tip: press Space to {s.phase === "ready" ? "start" : "finish"} your answer.</p>
+      )}
       <Controls
         phase={s.phase}
         onRepeat={repeat}
