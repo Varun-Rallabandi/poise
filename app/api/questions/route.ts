@@ -1,5 +1,5 @@
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
-import { toErrorResponse } from "@/lib/apiError";
+import { missingKeyResponse, toErrorResponse } from "@/lib/apiError";
 import { client, MODEL, repoSystemBlock } from "@/lib/claude";
 import { QUESTIONS_PROMPT } from "@/lib/prompts";
 import { QuestionSetSchema } from "@/lib/schemas";
@@ -8,6 +8,8 @@ import type { RepoFile } from "@/lib/types";
 export const maxDuration = 300;
 
 export async function POST(req: Request) {
+  const noKey = missingKeyResponse();
+  if (noKey) return noKey;
   const { files, count = 12, role = "" } = (await req.json()) as { files: RepoFile[]; count?: number; role?: string };
   if (!Array.isArray(files) || files.length === 0)
     return Response.json({ error: "Upload a repo folder first." }, { status: 400 });
