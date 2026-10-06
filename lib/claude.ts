@@ -1,10 +1,9 @@
 import Anthropic from "@anthropic-ai/sdk";
+import type { RepoFile } from "./types";
 
 // Server-only: reads ANTHROPIC_API_KEY from the environment.
 export const client = new Anthropic();
 export const MODEL = "claude-opus-4-8";
-
-import type { RepoFile } from "./types";
 
 /**
  * The repo as one cached system block. It leads the system prompt in every route,
