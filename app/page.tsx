@@ -5,6 +5,7 @@ import { RepoSummary } from "@/components/RepoSummary";
 import { PracticeRoom } from "@/components/room/PracticeRoom";
 import { SessionSettings, type Settings } from "@/components/SessionSettings";
 import { generateQuestions } from "@/lib/api";
+import { DEMO_SET } from "@/lib/demo";
 import type { RepoLoad } from "@/lib/repo";
 import type { QuestionSet } from "@/lib/schemas";
 import type { Answer } from "@/lib/session";
@@ -18,9 +19,17 @@ export default function Home() {
   const [set, setSet] = useState<QuestionSet | null>(null);
   const [answers, setAnswers] = useState<Answer[]>([]);
   const [error, setError] = useState("");
+  const [demo, setDemo] = useState(false);
+
+  function startDemo() {
+    setDemo(true);
+    setSet(DEMO_SET);
+    setStage("room");
+  }
 
   async function prepare() {
     if (!repo) return;
+    setDemo(false);
     setError("");
     setStage("generating");
     try {
@@ -56,6 +65,11 @@ export default function Home() {
             </>
           )}
           {error && <p className="text-sm text-danger">{error}</p>}
+          {!repo && (
+            <button className="self-start text-sm text-muted underline underline-offset-2" onClick={startDemo}>
+              No repo handy? Try a 3-question demo
+            </button>
+          )}
         </>
       )}
 
@@ -63,7 +77,9 @@ export default function Home() {
         <p className="animate-pulse text-muted">Reading your code and writing the questions an interviewer would ask…</p>
       )}
 
-      {stage === "room" && repo && set && <PracticeRoom files={repo.files} set={set} onFinish={finish} />}
+      {stage === "room" && set && (repo || demo) && (
+        <PracticeRoom files={repo?.files ?? []} set={set} onFinish={finish} demo={demo} />
+      )}
 
       {stage === "summary" && (
         <p>
