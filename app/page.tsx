@@ -68,13 +68,11 @@ export default function Home() {
       {stage === "setup" && (
         <>
           {repo ? <RepoSummary repo={repo} onClear={() => setRepo(null)} /> : <FolderPicker onLoad={setRepo} />}
+          <SessionSettings value={settings} onChange={setSettings} />
           {repo && (
-            <>
-              <SessionSettings value={settings} onChange={setSettings} />
-              <button className="self-start rounded-full bg-accent px-6 py-3 font-medium text-white" onClick={prepare}>
-                Prepare my interview
-              </button>
-            </>
+            <button className="self-start rounded-full bg-accent px-6 py-3 font-medium text-white" onClick={prepare}>
+              Prepare my interview
+            </button>
           )}
           {error && <p className="text-sm text-danger">{error}</p>}
           {!repo && (
