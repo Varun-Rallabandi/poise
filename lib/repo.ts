@@ -1,3 +1,5 @@
+import type { RepoFile } from "./types";
+
 const SKIP_DIRS =
   /(^|\/)(node_modules|\.git|\.next|dist|build|out|coverage|\.venv|venv|__pycache__|\.turbo|target|vendor)\//;
 const SKIP_FILES = /(package-lock\.json|pnpm-lock\.yaml|yarn\.lock|\.min\.(js|css)|\.map)$/;
@@ -18,3 +20,37 @@ export function isTextFile(path: string): boolean {
 
 export const MAX_FILE_CHARS = 120_000;
 export const MAX_TOTAL_CHARS = 1_500_000; // roughly 400k tokens, well inside a 1M context
+
+export type RepoLoad = { files: RepoFile[]; skipped: string[]; totalChars: number };
+
+/** Minimal shape of a browser File so this is testable outside the DOM. */
+export type FileLike = { name: string; size: number; webkitRelativePath?: string; text(): Promise<string> };
+
+export async function readRepoFolder(list: ArrayLike<FileLike>): Promise<RepoLoad> {
+  const files: RepoFile[] = [];
+  const skipped: string[] = [];
+  let totalChars = 0;
+
+  for (const file of Array.from(list)) {
+    const path = stripRootFolder(file.webkitRelativePath || file.name);
+    if (isIgnoredPath(path) || !isTextFile(path)) continue;
+    if (file.size > MAX_FILE_CHARS) {
+      skipped.push(`${path} (too large)`);
+      continue;
+    }
+    const content = await file.text();
+    if (totalChars + content.length > MAX_TOTAL_CHARS) {
+      skipped.push(`${path} (repo size limit)`);
+      continue;
+    }
+    totalChars += content.length;
+    files.push({ path, content });
+  }
+  return { files, skipped, totalChars };
+}
+
+/** "my-takehome/src/app.ts" -> "src/app.ts" so paths read like they do in an editor. */
+export function stripRootFolder(path: string): string {
+  const i = path.indexOf("/");
+  return i === -1 ? path : path.slice(i + 1);
+}
