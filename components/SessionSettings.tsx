@@ -1,6 +1,8 @@
 "use client";
+import type { HintLevel } from "@/lib/hints";
+import { LevelPicker } from "./LevelPicker";
 
-export type Settings = { count: number; role: string };
+export type Settings = { count: number; role: string; level: HintLevel };
 
 export function SessionSettings({ value, onChange }: { value: Settings; onChange: (s: Settings) => void }) {
   return (
@@ -25,6 +27,9 @@ export function SessionSettings({ value, onChange }: { value: Settings; onChange
           className="accent-[var(--accent)]"
         />
       </label>
+      <div className="sm:col-span-2">
+        <LevelPicker value={value.level} onChange={(level) => onChange({ ...value, level })} />
+      </div>
     </div>
   );
 }
