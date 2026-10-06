@@ -26,7 +26,8 @@ export type SessionAction =
   | { type: "end"; transcript: string; metrics: Metrics }
   | { type: "graded"; feedback: Feedback }
   | { type: "gradeFailed"; error: string }
-  | { type: "next" };
+  | { type: "next" }
+  | { type: "followUp"; question: string };
 
 export function initSession(questions: Question[], defer = false): SessionState {
   return { phase: "intro", index: 0, questions, answers: [], defer };
@@ -58,6 +59,13 @@ export function sessionReducer(s: SessionState, a: SessionAction): SessionState 
       const last = answers[answers.length - 1];
       answers[answers.length - 1] = a.type === "graded" ? { ...last, feedback: a.feedback } : { ...last, error: a.error };
       return { ...s, phase: "review", answers };
+    }
+    case "followUp": {
+      if (s.phase !== "review") return s;
+      const parent = s.questions[s.index];
+      const fu: Question = { ...parent, question: a.question, talkingPoints: [], keywords: [], category: parent.category };
+      const questions = [...s.questions.slice(0, s.index + 1), fu, ...s.questions.slice(s.index + 1)];
+      return advance({ ...s, questions });
     }
     case "next": {
       if (s.phase !== "review") return s;

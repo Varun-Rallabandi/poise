@@ -50,4 +50,11 @@ describe("sessionReducer", () => {
     expect(s.phase).toBe("done");
     expect(s.answers).toHaveLength(2);
   });
+
+  it("inserts a follow-up right after the current question", () => {
+    let s = answerOnce(r(initSession([q(1), q(2)]), { type: "start" }));
+    s = r(s, { type: "followUp", question: "Why not UUIDs?" });
+    expect(s).toMatchObject({ phase: "asking", index: 1 });
+    expect(s.questions.map((x) => x.question)).toEqual(["Q1", "Why not UUIDs?", "Q2"]);
+  });
 });
