@@ -11,8 +11,10 @@ export const maxDuration = 120;
 export async function POST(req: Request) {
   const body = await req.json();
   const files = body.files as RepoFile[];
-  const question = QuestionSchema.parse(body.question);
-  const metrics = MetricsSchema.parse(body.metrics);
+  const question = QuestionSchema.safeParse(body.question);
+  const metrics = MetricsSchema.safeParse(body.metrics);
+  if (!Array.isArray(files) || !files.length || !question.success || !metrics.success)
+    return Response.json({ error: "Missing repo, question or metrics." }, { status: 400 });
   const transcript = String(body.transcript ?? "");
 
   try {
@@ -21,7 +23,7 @@ export async function POST(req: Request) {
       max_tokens: 16000,
       thinking: { type: "adaptive" },
       system: [repoSystemBlock(files), { type: "text", text: FEEDBACK_PROMPT }],
-      messages: [{ role: "user", content: feedbackMessage(question, transcript, metrics) }],
+      messages: [{ role: "user", content: feedbackMessage(question.data, transcript, metrics.data) }],
       output_config: { format: zodOutputFormat(FeedbackSchema) },
     });
     if (!res.parsed_output) throw new Error(`Model returned no feedback (stop_reason: ${res.stop_reason})`);
