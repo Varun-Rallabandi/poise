@@ -1,3 +1,5 @@
+import type { RepoFile } from "./types";
+
 const SKIP_DIRS =
   /(^|\/)(node_modules|\.git|\.next|dist|build|out|coverage|\.venv|venv|__pycache__|\.turbo|target|vendor)\//;
 const SKIP_FILES = /(package-lock\.json|pnpm-lock\.yaml|yarn\.lock|\.min\.(js|css)|\.map)$/;
@@ -18,3 +20,23 @@ export function isTextFile(path: string): boolean {
 
 export const MAX_FILE_CHARS = 120_000;
 export const MAX_TOTAL_CHARS = 1_500_000; // roughly 400k tokens, well inside a 1M context
+
+export type RepoLoad = { files: RepoFile[]; skipped: string[]; totalChars: number };
+
+/** Minimal shape of a browser File so this is testable outside the DOM. */
+export type FileLike = { name: string; size: number; webkitRelativePath?: string; text(): Promise<string> };
+
+export async function readRepoFolder(list: ArrayLike<FileLike>): Promise<RepoLoad> {
+  const files: RepoFile[] = [];
+  const skipped: string[] = [];
+  let totalChars = 0;
+
+  for (const file of Array.from(list)) {
+    const path = file.webkitRelativePath || file.name;
+    if (isIgnoredPath(path) || !isTextFile(path)) continue;
+    const content = await file.text();
+    totalChars += content.length;
+    files.push({ path, content });
+  }
+  return { files, skipped, totalChars };
+}
