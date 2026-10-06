@@ -38,3 +38,37 @@ test("demo session walks through a question", async ({ page }) => {
   await expect(page.getByText("A tighter version")).toBeVisible();
   await page.screenshot({ path: "e2e/.out/review.png", fullPage: true });
 });
+
+test("mock interview mode defers feedback to the end", async ({ page }) => {
+  await page.addInitScript(() => {
+    window.speechSynthesis.speak = (u: SpeechSynthesisUtterance) => setTimeout(() => u.onend?.(new Event("end") as SpeechSynthesisEvent), 20);
+    class FakeRecognition {
+      continuous = false;
+      interimResults = false;
+      lang = "en-US";
+      onresult: ((e: unknown) => void) | null = null;
+      onend: (() => void) | null = null;
+      onerror: ((e: unknown) => void) | null = null;
+      start() {
+        setTimeout(() => this.onresult?.({ resultIndex: 0, results: [Object.assign([{ transcript: "cache it" }], { isFinal: true })] }), 50);
+      }
+      stop() {
+        this.onend?.();
+      }
+    }
+    Object.assign(window, { SpeechRecognition: FakeRecognition, webkitSpeechRecognition: FakeRecognition });
+  });
+  await page.goto("/");
+  await page.getByText("4. Mock interview").click();
+  await page.getByText("Try a 3-question demo").click();
+  await page.getByRole("button", { name: "Start interview" }).click();
+  for (let i = 0; i < 3; i++) {
+    await page.getByRole("button", { name: "Start answering" }).click();
+    await expect(page.getByText("cache it")).toBeVisible();
+    await expect(page.getByText("Talking points")).toHaveCount(0);
+    await page.getByRole("button", { name: "Done answering" }).click();
+    // No per-answer review in mock mode: it goes straight to the next question.
+    await expect(page.getByText("A tighter version")).toHaveCount(0);
+  }
+  await expect(page.getByText("Session complete")).toBeVisible();
+});
