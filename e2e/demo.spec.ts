@@ -30,10 +30,11 @@ test("demo session walks through a question", async ({ page }) => {
   await page.getByRole("button", { name: "Start interview" }).click();
   await expect(page.getByText("Question 1 of 3")).toBeVisible();
 
+  await expect(page.getByText("Talking points")).toBeVisible();
   await page.getByRole("button", { name: "Start answering" }).click();
   await expect(page.getByText("base62 slugs")).toBeVisible();
   await page.getByRole("button", { name: "Done answering" }).click();
 
-  await expect(page.getByText(/Score: \d+\/10/)).toBeVisible();
+  await expect(page.getByText("A tighter version")).toBeVisible();
   await page.screenshot({ path: "e2e/.out/review.png", fullPage: true });
 });
